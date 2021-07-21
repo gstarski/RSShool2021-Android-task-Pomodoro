@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="PieProgressIndicator">
+        <attr name="pie_color" format="color" />
+        <attr name="pie_style" format="enum">
+            <enum name="fill" value="0" />
+            <enum name="stroke" value="1" />
+        </attr>
+    </declare-styleable>
+</resources>

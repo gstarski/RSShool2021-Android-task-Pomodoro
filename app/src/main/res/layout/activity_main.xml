@@ -6,13 +6,64 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <TextView
-        android:id="@+id/textView"
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/border_top"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="TextView"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:orientation="horizontal"
+        app:layout_constraintGuide_begin="@dimen/main_indent" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/border_left"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_begin="@dimen/main_indent" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/border_right"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_end="@dimen/main_indent" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/border_bottom"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_end="@dimen/main_indent" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_timers"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_constraintStart_toStartOf="@+id/border_left"
+            app:layout_constraintEnd_toStartOf="@+id/border_right"
+            app:layout_constraintTop_toTopOf="@+id/border_top"
+            app:layout_constraintBottom_toTopOf="@+id/edit_minutes"
+            android:layout_marginBottom="@dimen/gap_between_items"
+            tools:listitem="@layout/item_timer" />
+
+    <EditText
+        android:id="@+id/edit_minutes"
+        android:layout_width="100dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="@id/border_left"
+        app:layout_constraintEnd_toStartOf="@+id/button_add_timer"
+        app:layout_constraintBottom_toTopOf="@id/border_bottom"
+        app:layout_constraintHorizontal_chainStyle="spread_inside"
+        android:backgroundTint="?colorPrimary"
+        android:inputType="number"
+        tools:ignore="Autofill,LabelFor,TextFields" />
+
+    <Button
+        android:id="@+id/button_add_timer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Add Timer"
+        app:layout_constraintStart_toEndOf="@+id/edit_minutes"
+        app:layout_constraintEnd_toEndOf="@id/border_right"
+        app:layout_constraintBottom_toTopOf="@id/border_bottom" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
