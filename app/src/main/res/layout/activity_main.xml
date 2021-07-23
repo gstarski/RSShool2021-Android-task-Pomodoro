@@ -34,27 +34,47 @@
         android:orientation="horizontal"
         app:layout_constraintGuide_end="@dimen/main_indent" />
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recycler_timers"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            app:layout_constraintStart_toStartOf="@+id/border_left"
-            app:layout_constraintEnd_toStartOf="@+id/border_right"
-            app:layout_constraintTop_toTopOf="@+id/border_top"
-            app:layout_constraintBottom_toTopOf="@+id/edit_minutes"
-            android:layout_marginBottom="@dimen/gap_between_items"
-            tools:listitem="@layout/item_timer" />
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_timers"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintStart_toStartOf="@+id/border_left"
+        app:layout_constraintEnd_toStartOf="@+id/border_right"
+        app:layout_constraintTop_toTopOf="@+id/border_top"
+        app:layout_constraintBottom_toTopOf="@+id/divider"
+        tools:listitem="@layout/item_timer" />
+
+    <View android:id="@+id/divider"
+        android:layout_width="0dp"
+        android:layout_height="2dp"
+        android:background="?android:attr/dividerVertical"
+        android:layout_marginBottom="@dimen/gap_between_items"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/edit_minutes" />
 
     <EditText
         android:id="@+id/edit_minutes"
-        android:layout_width="100dp"
+        android:layout_width="72dp"
         android:layout_height="wrap_content"
         app:layout_constraintStart_toStartOf="@id/border_left"
+        app:layout_constraintBottom_toTopOf="@id/border_bottom"
+        android:backgroundTint="?colorPrimary"
+        android:inputType="number"
+        android:hint="MIN"
+        tools:ignore="Autofill,LabelFor,TextFields" />
+
+    <EditText
+        android:id="@+id/edit_seconds"
+        android:layout_width="72dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toEndOf="@id/edit_minutes"
         app:layout_constraintEnd_toStartOf="@+id/button_add_timer"
         app:layout_constraintBottom_toTopOf="@id/border_bottom"
         app:layout_constraintHorizontal_chainStyle="spread_inside"
         android:backgroundTint="?colorPrimary"
         android:inputType="number"
+        android:hint="SEC"
         tools:ignore="Autofill,LabelFor,TextFields" />
 
     <Button
@@ -62,7 +82,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Add Timer"
-        app:layout_constraintStart_toEndOf="@+id/edit_minutes"
+        app:layout_constraintStart_toEndOf="@+id/edit_seconds"
         app:layout_constraintEnd_toEndOf="@id/border_right"
         app:layout_constraintBottom_toTopOf="@id/border_bottom" />
 

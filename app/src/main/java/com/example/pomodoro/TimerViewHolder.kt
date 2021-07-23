@@ -3,6 +3,7 @@ package com.example.pomodoro
 import android.graphics.drawable.AnimationDrawable
 import androidx.core.view.isInvisible
 import androidx.recyclerview.widget.RecyclerView
+import com.example.pomodoro.config.CrossCheckShenanigans
 import com.example.pomodoro.databinding.ItemTimerBinding
 import com.google.android.material.color.MaterialColors
 
@@ -17,6 +18,10 @@ class TimerViewHolder(
         } else {
             stopBlinkingIndicator()
             binding.buttonStartStop.text = "Start"
+        }
+
+        if (timer.hasFinished && !CrossCheckShenanigans.SHOULD_ALLOW_RESTART_WHEN_FINISHED) {
+            binding.buttonStartStop.isEnabled = false
         }
 
         attachClickListeners(timer)
@@ -41,7 +46,10 @@ class TimerViewHolder(
     }
 
     private fun displayTimeRemaining(timer: Timer) {
-        val time = if (timer.hasFinished) timer.initialTime else timer.remainingTime
+        val shouldShowInitial =
+            CrossCheckShenanigans.SHOULD_SHOW_INITIAL_VALUE_WHEN_FINISHED && timer.hasFinished
+
+        val time = if (shouldShowInitial) timer.initialTime else timer.remainingTime
         binding.textTimeRemaining.text = formatTime(time)
     }
 
