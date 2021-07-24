@@ -5,7 +5,7 @@ import java.util.*
 /**
  * An object that owns a list of timers.
  */
-interface TimersController {
+interface TimersManager {
     /**
      * Creates a new timer.
      * It needs to be started manually (no autostart).

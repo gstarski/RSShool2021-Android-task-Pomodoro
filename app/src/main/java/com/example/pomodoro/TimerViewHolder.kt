@@ -9,7 +9,7 @@ import com.google.android.material.color.MaterialColors
 
 class TimerViewHolder(
     val binding: ItemTimerBinding,
-    val controller: TimersController) : RecyclerView.ViewHolder(binding.root) {
+    val manager: TimersManager) : RecyclerView.ViewHolder(binding.root) {
 
     fun bind(timer: Timer) {
         if (timer.isRunning) {
@@ -34,14 +34,14 @@ class TimerViewHolder(
     private fun attachClickListeners(timer: Timer) {
         binding.buttonStartStop.setOnClickListener {
             if (timer.isRunning) {
-                controller.stopTimer(timer.id)
+                manager.stopTimer(timer.id)
             } else {
-                controller.startTimer(timer.id)
+                manager.startTimer(timer.id)
             }
         }
 
         binding.buttonDelete.setOnClickListener {
-            controller.deleteTimer(timer.id)
+            manager.deleteTimer(timer.id)
         }
     }
 

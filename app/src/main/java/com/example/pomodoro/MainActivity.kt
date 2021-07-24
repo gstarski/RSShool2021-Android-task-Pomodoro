@@ -3,10 +3,9 @@ package com.example.pomodoro
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
-import android.os.CountDownTimer
-import android.os.SystemClock
 import android.view.Gravity
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.addTextChangedListener
 import androidx.lifecycle.Lifecycle
@@ -17,20 +16,17 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.SimpleItemAnimator
 import com.example.pomodoro.databinding.ActivityMainBinding
 import com.example.pomodoro.utils.NonNegativeIntTextWatcher
-import kotlinx.coroutines.Job
 import java.util.*
 
-class MainActivity : AppCompatActivity(), TimersController, LifecycleObserver {
+class MainActivity : AppCompatActivity(), LifecycleObserver {
 
     private lateinit var binding: ActivityMainBinding
 
-    private val timerAdapter = TimerAdapter(this)
-    private val timers = mutableListOf<Timer>()
+    private val viewModel: TimersViewModel by viewModels()
 
-    private var countdownJob: Job? = null // switch to coroutines?
+    private val timerAdapter by lazy { TimerAdapter(viewModel) }
 
-    // Using one countdown since only one timer can work at a time
-    private var countdown: CountDownTimer? = null
+    private var continueUntilSystemTime: Long? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,20 +40,18 @@ class MainActivity : AppCompatActivity(), TimersController, LifecycleObserver {
             (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
         }
 
-        attachHandlers()
+        attachViewModelObservers()
+        attachUiHandlers()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        countdown?.cancel()
         stopNotifications()
     }
 
     @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
     fun onApplicationBackground() {
-        timers.find(Timer::isRunning)?.also { runningTimer ->
-            startNotifications(runningTimer)
-        }
+        continueUntilSystemTime?.also { startNotifications(it) }
     }
 
     @OnLifecycleEvent(Lifecycle.Event.ON_START)
@@ -65,16 +59,35 @@ class MainActivity : AppCompatActivity(), TimersController, LifecycleObserver {
         stopNotifications()
     }
 
+    private fun attachViewModelObservers() {
+        viewModel.timers.observe(this) { timers ->
+            timerAdapter.submitList(timers)
+        }
+
+        // TODO: Notify with payloads to avoid item view re-creation
+        viewModel.tickEventAtIndex.observe(this) { timerIndex ->
+            timerAdapter.notifyItemChanged(timerIndex)
+        }
+
+        viewModel.timeUpEventAtIndex.observe(this) { timerIndex ->
+            timerAdapter.notifyItemChanged(timerIndex)
+        }
+
+        viewModel.continueUntilSystemTime.observe(this) {
+            continueUntilSystemTime = it
+        }
+    }
+
     @SuppressLint("ShowToast")
-    private fun attachHandlers() {
-        binding.editMinutes.addTextChangedListener(NonNegativeIntTextWatcher(60))
+    private fun attachUiHandlers() {
+        binding.editMinutes.addTextChangedListener(NonNegativeIntTextWatcher(59))
         binding.editMinutes.addTextChangedListener { minutesText ->
             if (!minutesText.isNullOrEmpty()) {
                 binding.editSeconds.error = null
             }
         }
 
-        binding.editSeconds.addTextChangedListener(NonNegativeIntTextWatcher(60))
+        binding.editSeconds.addTextChangedListener(NonNegativeIntTextWatcher(59))
         binding.editSeconds.addTextChangedListener { secondsText ->
             if (!secondsText.isNullOrEmpty()) {
                 binding.editMinutes.error = null
@@ -100,7 +113,7 @@ class MainActivity : AppCompatActivity(), TimersController, LifecycleObserver {
                 return@setOnClickListener
             }
 
-            createTimer(minutes, seconds)
+            viewModel.createTimer(minutes, seconds)
         }
     }
 
@@ -110,99 +123,9 @@ class MainActivity : AppCompatActivity(), TimersController, LifecycleObserver {
         startService(stopIntent)
     }
 
-    private fun startNotifications(timer: Timer) {
+    private fun startNotifications(untilSystemTime: Long) {
         val startIntent = Intent(this, PomodoroService::class.java)
-        startIntent.putExtras(PomodoroService.createBundleForStarting(
-            timer.remainingTime + SystemClock.elapsedRealtime()
-        ))
+        startIntent.putExtras(PomodoroService.createBundleForStarting(untilSystemTime))
         startService(startIntent)
     }
-
-
-    //region Timers
-    // TODO: Move timers to ViewModel
-    // TODO: Notify adapter about timer changes with payloads
-    override fun createTimer(minutes: Int, seconds: Int) {
-        val millisToGo = minutes * 60 * 1000L + seconds * 1000L
-        val newTimer = Timer(UUID.randomUUID(), millisToGo)
-        timers.add(newTimer)
-        timerAdapter.submitList(timers.toList())
-    }
-
-    override fun startTimer(id: UUID) {
-        timers.find { it.id == id }?.also { timerToStart ->
-            if (timerToStart.isRunning) {
-                throw RuntimeException(
-                    "Attempt to start a timer that's already running (${timerToStart.id})")
-            }
-
-            stopCurrentlyRunningTimer()
-            timerToStart.isRunning = true
-
-            if (timerToStart.hasFinished) {
-                timerToStart.elapsedTime = 0
-            }
-
-            timerAdapter.notifyItemChanged(timers.indexOf(timerToStart))
-            countdown?.cancel()
-            countdown = createCountdown(timerToStart)
-            countdown?.start()
-        }
-    }
-
-    override fun stopTimer(id: UUID) {
-        timers.find { it.id == id }?.also { timerToStop ->
-            if (!timerToStop.isRunning) {
-                throw RuntimeException(
-                    "Attempt to stop a timer that isn't running (${timerToStop.id})")
-            }
-
-            countdown?.cancel()
-            timerToStop.isRunning = false
-            timerAdapter.notifyItemChanged(timers.indexOf(timerToStop))
-        }
-    }
-
-    override fun deleteTimer(id: UUID) {
-        timers.find { it.id == id }?.let { timerToDelete ->
-            if (timerToDelete.isRunning) {
-                countdown?.cancel()
-            }
-
-            timers.remove(timerToDelete)
-            timerAdapter.submitList(timers.toList())
-        }
-    }
-
-    private fun stopCurrentlyRunningTimer() {
-        timers.find(Timer::isRunning)?.also { stopTimer(it.id) }
-    }
-
-    private fun createCountdown(timer: Timer): CountDownTimer {
-        val interval = 250L
-        var firstTick = true
-        return object : CountDownTimer(timer.remainingTime, interval) {
-            override fun onTick(millisUntilFinished: Long) {
-                if (firstTick) { // skipping the first tick because onTick() fires right away
-                    firstTick = false
-                    return
-                }
-
-                timer.elapsedTime += interval
-
-                if (timer.remainingTime == 0L) {
-                    cancel()
-                    stopTimer(timer.id)
-                } else {
-                    timerAdapter.notifyItemChanged(timers.indexOf(timer))
-                }
-            }
-
-            override fun onFinish() {
-                timer.elapsedTime = timer.initialTime
-                stopTimer(timer.id)
-            }
-        }
-    }
-    //endregion Timers
 }

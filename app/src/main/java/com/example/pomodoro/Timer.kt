@@ -8,6 +8,9 @@ data class Timer(
     var elapsedTime: Long = 0,
     var isRunning: Boolean = false
 ) {
+    /**
+     * Calculated as a difference between the initial time and elapsed time.
+     */
     val remainingTime: Long
         get() = (initialTime - elapsedTime).coerceAtLeast(0)
 

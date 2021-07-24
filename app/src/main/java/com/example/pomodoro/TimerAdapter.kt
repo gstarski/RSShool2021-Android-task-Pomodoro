@@ -1,7 +1,5 @@
 package com.example.pomodoro
 
-import android.content.Context
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
@@ -9,13 +7,13 @@ import androidx.recyclerview.widget.ListAdapter
 import com.example.pomodoro.databinding.ItemTimerBinding
 
 class TimerAdapter(
-    private val timersController: TimersController
+    private val timersManager: TimersManager
 ) : ListAdapter<Timer, TimerViewHolder>(itemComparator) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TimerViewHolder {
         val inflater = LayoutInflater.from(parent.context)
         val binding = ItemTimerBinding.inflate(inflater, parent, false)
-        return TimerViewHolder(binding, timersController)
+        return TimerViewHolder(binding, timersManager)
     }
 
     override fun onBindViewHolder(holder: TimerViewHolder, position: Int) {
