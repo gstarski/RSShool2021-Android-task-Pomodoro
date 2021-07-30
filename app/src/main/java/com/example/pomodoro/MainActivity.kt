@@ -15,7 +15,9 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.SimpleItemAnimator
 import com.example.pomodoro.databinding.ActivityMainBinding
+import com.example.pomodoro.service.PomodoroService
 import com.example.pomodoro.utils.NonNegativeIntTextWatcher
+import com.example.pomodoro.utils.playAlertRingtone
 import java.util.*
 
 class MainActivity : AppCompatActivity(), LifecycleObserver {
@@ -28,20 +30,23 @@ class MainActivity : AppCompatActivity(), LifecycleObserver {
 
     private var continueUntilSystemTime: Long? = null
 
+    private var shouldPlayAlerts: Boolean = true
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        binding.recyclerTimers.apply {
-            layoutManager = LinearLayoutManager(context)
-            adapter = timerAdapter
-            (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
-        }
-
+        initializeRecyclerView()
         attachViewModelObservers()
         attachUiHandlers()
+    }
+
+    override fun onStart() {
+        binding.editSeconds.clearFocus()
+        binding.editMinutes.clearFocus()
+        super.onStart()
     }
 
     override fun onDestroy() {
@@ -49,8 +54,13 @@ class MainActivity : AppCompatActivity(), LifecycleObserver {
         stopNotifications()
     }
 
+    override fun onBackPressed() {
+        moveTaskToBack(true)
+    }
+
     @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
     fun onApplicationBackground() {
+        shouldPlayAlerts = false
         continueUntilSystemTime?.also { startNotifications(it) }
     }
 
@@ -59,18 +69,45 @@ class MainActivity : AppCompatActivity(), LifecycleObserver {
         stopNotifications()
     }
 
+    private fun initializeRecyclerView() {
+        binding.recyclerTimers.apply {
+            layoutManager = LinearLayoutManager(context)
+            adapter = timerAdapter
+
+            itemAnimator?.apply {
+                changeDuration = ANIM_TIME_VERY_SHORT
+                moveDuration = ANIM_TIME_VERY_SHORT
+            }
+
+            (itemAnimator as SimpleItemAnimator).supportsChangeAnimations = false
+        }
+    }
+
     private fun attachViewModelObservers() {
         viewModel.timers.observe(this) { timers ->
             timerAdapter.submitList(timers)
         }
 
-        // TODO: Notify with payloads to avoid item view re-creation
-        viewModel.tickEventAtIndex.observe(this) { timerIndex ->
-            timerAdapter.notifyItemChanged(timerIndex)
+        viewModel.timeUpEventAtIndex.observe(this) { timerIndex ->
+            timerIndex?.also {
+                if (shouldPlayAlerts) {
+                    playAlertRingtone(this)
+                }
+                timerAdapter.notifyItemChanged(timerIndex)
+                viewModel.doneHandlingTimeUpEvent()
+            }
         }
 
-        viewModel.timeUpEventAtIndex.observe(this) { timerIndex ->
-            timerAdapter.notifyItemChanged(timerIndex)
+        viewModel.tickEventAtIndex.observe(this) { timerIndex ->
+            timerIndex?.also {
+                shouldPlayAlerts = true
+
+                // this could introduce a bug: last tick happens during animation -> finished state is not rendered
+                // it will not occur since adapter gets notified during timeUpEvent
+                if (binding.recyclerTimers.itemAnimator?.isRunning == false) {
+                    timerAdapter.notifyItemChanged(timerIndex)
+                }
+            }
         }
 
         viewModel.continueUntilSystemTime.observe(this) {
@@ -80,14 +117,14 @@ class MainActivity : AppCompatActivity(), LifecycleObserver {
 
     @SuppressLint("ShowToast")
     private fun attachUiHandlers() {
-        binding.editMinutes.addTextChangedListener(NonNegativeIntTextWatcher(59))
+        binding.editMinutes.addTextChangedListener(NonNegativeIntTextWatcher(MAX_MINUTES))
         binding.editMinutes.addTextChangedListener { minutesText ->
             if (!minutesText.isNullOrEmpty()) {
                 binding.editSeconds.error = null
             }
         }
 
-        binding.editSeconds.addTextChangedListener(NonNegativeIntTextWatcher(59))
+        binding.editSeconds.addTextChangedListener(NonNegativeIntTextWatcher(MAX_SECONDS))
         binding.editSeconds.addTextChangedListener { secondsText ->
             if (!secondsText.isNullOrEmpty()) {
                 binding.editMinutes.error = null
@@ -127,5 +164,15 @@ class MainActivity : AppCompatActivity(), LifecycleObserver {
         val startIntent = Intent(this, PomodoroService::class.java)
         startIntent.putExtras(PomodoroService.createBundleForStarting(untilSystemTime))
         startService(startIntent)
+    }
+
+    companion object {
+        // 23:59:59
+        private const val MAX_SECONDS = 59
+        private const val MAX_MINUTES = 1439
+
+        private const val ANIM_TIME_VERY_SHORT = 120L
+
+        const val EXTRA_RESTORED_FROM_SERVICE = "RESTORED_FROM_SERVICE"
     }
 }

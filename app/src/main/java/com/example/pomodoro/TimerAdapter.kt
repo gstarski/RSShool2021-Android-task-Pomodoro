@@ -5,6 +5,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import com.example.pomodoro.databinding.ItemTimerBinding
+import com.example.pomodoro.model.Timer
 
 class TimerAdapter(
     private val timersManager: TimersManager

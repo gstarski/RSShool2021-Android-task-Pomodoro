@@ -6,6 +6,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.pomodoro.model.Timer
 import kotlinx.coroutines.*
 import java.util.*
 
@@ -41,6 +42,11 @@ class TimersViewModel : ViewModel(), TimersManager {
     private val _continueUntilSystemTime = MutableLiveData<Long>()
     val continueUntilSystemTime: LiveData<Long>
         get() = _continueUntilSystemTime
+
+    fun doneHandlingTimeUpEvent() { // could be simplified
+        _timeUpEvent.value = null
+        _timeUpEventAtIndex.value = null
+    }
 
     override fun createTimer(minutes: Int, seconds: Int) {
         val millisToGo = minutes * 60 * 1000L + seconds * 1000L
@@ -109,32 +115,35 @@ class TimersViewModel : ViewModel(), TimersManager {
      * Triggers [timeUpEvent] once the time is over.
      */
     private fun startCountdown(runningTimer: Timer) {
-        val interval = 100L
+        val interval = COUNTDOWN_INTERVAL
         val initialElapsed = runningTimer.elapsedTime
         countdownJob?.cancel()
         _continueUntilSystemTime.value = SystemClock.elapsedRealtime() + runningTimer.remainingTime
         countdownJob = viewModelScope.launch {
             val startedSysTime = SystemClock.elapsedRealtime()
-            Log.d(TAG, "Started countdown for ${runningTimer.id} (${interval}ms tick)")
+            Log.i(TAG, "Started countdown for ${runningTimer.id} (${interval}ms tick)")
             try {
                 while (true) {
                     val elapsedSinceCountdown = SystemClock.elapsedRealtime() - startedSysTime
                     runningTimer.elapsedTime = initialElapsed + elapsedSinceCountdown
                     triggerTimerTickEvent(runningTimer)
-                    if (runningTimer.remainingTime == 0L) {
+                    if (runningTimer.hasFinished) {
                         cancel()
                     }
                     delay(interval)
                 }
             } catch (ex: CancellationException) {
-                if (runningTimer.remainingTime == 0L) {
-                    triggerTimeUpEvent(runningTimer)
-                }
+                // cancelled
             } finally {
                 runningTimer.isRunning = false
-                triggerTimerTickEvent(runningTimer)
                 _continueUntilSystemTime.value = null
-                Log.d(TAG, "Finished countdown for ${runningTimer.id}")
+
+                triggerTimerTickEvent(runningTimer)
+                if (runningTimer.hasFinished) {
+                    triggerTimeUpEvent(runningTimer)
+                }
+
+                Log.i(TAG, "Finished countdown for ${runningTimer.id}")
             }
         }
     }
@@ -150,5 +159,6 @@ class TimersViewModel : ViewModel(), TimersManager {
 
     private companion object {
         val TAG = TimersViewModel::class.simpleName
+        const val COUNTDOWN_INTERVAL = 250L
     }
 }

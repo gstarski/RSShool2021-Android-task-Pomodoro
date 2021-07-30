@@ -1,13 +1,13 @@
-package com.example.pomodoro
+package com.example.pomodoro.views
 
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
 import androidx.annotation.AttrRes
+import com.example.pomodoro.R
 
 class PieProgressIndicator @JvmOverloads constructor(
     context: Context,

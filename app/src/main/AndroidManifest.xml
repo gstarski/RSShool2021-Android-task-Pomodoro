@@ -24,7 +24,7 @@
         </activity>
 
         <service
-            android:name=".PomodoroService"
+            android:name=".service.PomodoroService"
             android:permission="android.permission.FOREGROUND_SERVICE" />
 
     </application>

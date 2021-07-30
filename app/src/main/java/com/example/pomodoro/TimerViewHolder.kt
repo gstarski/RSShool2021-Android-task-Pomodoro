@@ -5,6 +5,7 @@ import androidx.core.view.isInvisible
 import androidx.recyclerview.widget.RecyclerView
 import com.example.pomodoro.config.CrossCheckShenanigans
 import com.example.pomodoro.databinding.ItemTimerBinding
+import com.example.pomodoro.model.Timer
 import com.google.android.material.color.MaterialColors
 
 class TimerViewHolder(
@@ -12,23 +13,13 @@ class TimerViewHolder(
     val manager: TimersManager) : RecyclerView.ViewHolder(binding.root) {
 
     fun bind(timer: Timer) {
-        if (timer.isRunning) {
-            startBlinkingIndicator()
-            binding.buttonStartStop.text = "Stop"
-        } else {
-            stopBlinkingIndicator()
-            binding.buttonStartStop.text = "Start"
-        }
-
-        if (timer.hasFinished && !CrossCheckShenanigans.SHOULD_ALLOW_RESTART_WHEN_FINISHED) {
-            binding.buttonStartStop.isEnabled = false
-        }
-
         attachClickListeners(timer)
         displayTimeRemaining(timer)
         setTimeDisplayColor(timer)
         setProgress(timer)
         setBackground(timer)
+        setBlinking(timer)
+        adjustStartStopButton(timer)
     }
 
     private fun attachClickListeners(timer: Timer) {
@@ -42,6 +33,18 @@ class TimerViewHolder(
 
         binding.buttonDelete.setOnClickListener {
             manager.deleteTimer(timer.id)
+        }
+    }
+
+    private fun setBlinking(timer: Timer) {
+        val blinking = (binding.blinkingIndicator.background as AnimationDrawable)
+
+        if (timer.isRunning) {
+            binding.blinkingIndicator.isInvisible = false
+            blinking.start()
+        } else {
+            binding.blinkingIndicator.isInvisible = true
+            blinking.stop()
         }
     }
 
@@ -59,14 +62,16 @@ class TimerViewHolder(
         binding.textTimeRemaining.setTextColor(color)
     }
 
-    private fun startBlinkingIndicator() {
-        binding.blinkingIndicator.isInvisible = false
-        (binding.blinkingIndicator.background as AnimationDrawable).start()
-    }
+    private fun adjustStartStopButton(timer: Timer) {
+        if (timer.hasFinished && !CrossCheckShenanigans.SHOULD_ALLOW_RESTART_WHEN_FINISHED) {
+            binding.buttonStartStop.isEnabled = false
+        }
 
-    private fun stopBlinkingIndicator() {
-        binding.blinkingIndicator.isInvisible = true
-        (binding.blinkingIndicator.background as AnimationDrawable).stop()
+        binding.buttonStartStop.text = when {
+            timer.isRunning -> "Stop"
+            timer.hasFinished -> "Again"
+            else -> "Start"
+        }
     }
 
     private fun setProgress(timer: Timer) {

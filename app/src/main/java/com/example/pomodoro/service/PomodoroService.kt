@@ -1,4 +1,4 @@
-package com.example.pomodoro
+package com.example.pomodoro.service
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -12,6 +12,10 @@ import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.os.bundleOf
+import com.example.pomodoro.MainActivity
+import com.example.pomodoro.R
+import com.example.pomodoro.formatTime
+import com.example.pomodoro.utils.playAlertRingtone
 import kotlinx.coroutines.*
 
 class PomodoroService : Service() {
@@ -83,6 +87,7 @@ class PomodoroService : Service() {
                 )
 
                 if (remainingTime == 0L) {
+                    playAlertRingtone(applicationContext)
                     cancel()
                 }
 
@@ -137,6 +142,7 @@ class PomodoroService : Service() {
     private fun getPendingIntent(): PendingIntent? {
         val resultIntent = Intent(this, MainActivity::class.java)
         resultIntent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+        resultIntent.putExtra(MainActivity.EXTRA_RESTORED_FROM_SERVICE, true)
         return PendingIntent.getActivity(this, 0, resultIntent, PendingIntent.FLAG_ONE_SHOT)
     }
 
